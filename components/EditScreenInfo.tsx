@@ -1,77 +1,88 @@
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import { useState } from "react";
+import { Pressable, StyleSheet, TextInput } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { ExternalLink } from './ExternalLink';
-import { MonoText } from './StyledText';
-import { Text, View } from './Themed';
-
-import Colors from '@/constants/Colors';
+import { Text, View } from "./Themed";
+import Tasks from "./Tasks";
 
 export default function EditScreenInfo({ path }: { path: string }) {
+  const [text, onChangeText] = useState("");
+  const [opacity, setOpacity] = useState(1);
+  const [tasks, setTasks] = useState<Array<string>>([]);
+  const [retrievedTasks, setRetrievedTasks] = useState<Array<string>>([]);
   return (
-    <View>
-      <View style={styles.getStartedContainer}>
-        <Text
-          style={styles.getStartedText}
-          lightColor="rgba(0,0,0,0.8)"
-          darkColor="rgba(255,255,255,0.8)">
-          Open up the code for this screen:
-        </Text>
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          value={text}
+          style={styles.input}
+          onChangeText={onChangeText}
+        />
+        <Pressable
+          onPress={async () => {
+            setOpacity(0.5);
+            if (text != "") {
+              setTasks([...tasks, text]);
+              try {
+                await AsyncStorage.setItem("tasks", JSON.stringify(tasks));
+              } catch (e) {
+                console.log(e);
+              }
+              try {
+                const retrievedItems = await AsyncStorage.getItem("tasks");
+                const parsedItems = await JSON.parse(retrievedItems!);
 
-        <View
-          style={[styles.codeHighlightContainer, styles.homeScreenFilename]}
-          darkColor="rgba(255,255,255,0.05)"
-          lightColor="rgba(0,0,0,0.05)">
-          <MonoText>{path}</MonoText>
-        </View>
-
-        <Text
-          style={styles.getStartedText}
-          lightColor="rgba(0,0,0,0.8)"
-          darkColor="rgba(255,255,255,0.8)">
-          Change any of the text, save the file, and your app will automatically update.
-        </Text>
+                if (parsedItems != null) setRetrievedTasks(parsedItems);
+              } catch (e) {
+                console.log(e);
+              }
+            }
+            setOpacity(1);
+            onChangeText("");
+          }}
+          style={[styles.button, { opacity: opacity }]}
+        >
+          <Text style={styles.buttonText}>Add Task</Text>
+        </Pressable>
       </View>
-
-      <View style={styles.helpContainer}>
-        <ExternalLink
-          style={styles.helpLink}
-          href="https://docs.expo.io/get-started/create-a-new-app/#opening-the-app-on-your-phonetablet">
-          <Text style={styles.helpLinkText} lightColor={Colors.light.tint}>
-            Tap here if your app doesn't automatically update after making changes
-          </Text>
-        </ExternalLink>
+      <View>
+        {retrievedTasks.map((task, index) => (
+          <Tasks
+            task={task}
+            key={index}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  getStartedContainer: {
-    alignItems: 'center',
-    marginHorizontal: 50,
+  container: {
+    marginVertical: 20,
+    marginHorizontal: 25,
   },
-  homeScreenFilename: {
-    marginVertical: 7,
+  inputContainer: {
+    display: "flex",
   },
-  codeHighlightContainer: {
-    borderRadius: 3,
-    paddingHorizontal: 4,
+  input: {
+    marginVertical: 10,
+    height: 60,
+    borderWidth: 1,
+    padding: 10,
+    borderColor: "red",
+    borderRadius: 5,
+    color: "#fff",
+    fontSize: 20,
   },
-  getStartedText: {
-    fontSize: 17,
-    lineHeight: 24,
-    textAlign: 'center',
+  button: {
+    borderWidth: 1,
+    padding: 10,
+    borderColor: "red",
+    alignSelf: "flex-end",
+    borderRadius: 20,
   },
-  helpContainer: {
-    marginTop: 15,
-    marginHorizontal: 20,
-    alignItems: 'center',
-  },
-  helpLink: {
-    paddingVertical: 15,
-  },
-  helpLinkText: {
-    textAlign: 'center',
+  buttonText: {
+    fontSize: 15,
   },
 });
